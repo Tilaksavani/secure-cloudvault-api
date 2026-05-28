@@ -1,24 +1,28 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
 
 
-client = TestClient(app)
+@pytest.fixture()
+def client():
+    with TestClient(app) as test_client:
+        yield test_client
 
 
-def test_home_route():
+def test_home_route(client):
     response = client.get("/")
     assert response.status_code == 200
     assert response.json()["message"] == "Secure CloudVault API is running"
 
 
-def test_health_check():
+def test_health_check(client):
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 
-def test_upload_search_download_count_and_delete_file():
+def test_upload_search_download_count_and_delete_file(client):
     file_content = b"sample cloud file content"
 
     upload_response = client.post(
@@ -60,7 +64,7 @@ def test_upload_search_download_count_and_delete_file():
     assert missing_response.status_code == 404
 
 
-def test_empty_file_rejected():
+def test_empty_file_rejected(client):
     response = client.post(
         "/files",
         files={"file": ("empty.txt", b"", "text/plain")},
@@ -69,7 +73,7 @@ def test_empty_file_rejected():
     assert response.status_code == 400
 
 
-def test_large_file_rejected():
+def test_large_file_rejected(client):
     large_content = b"a" * (11 * 1024 * 1024)
 
     response = client.post(
